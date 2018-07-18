@@ -1,7 +1,7 @@
 {
   "name": "@jangle/ql",
   "version": "0.1.0",
-  "description": "The GraphQL layer for Jangle CMS",
+  "description": "The GraphQL layer for Jangle CMS.",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
