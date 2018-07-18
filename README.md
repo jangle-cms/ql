@@ -1,4 +1,4 @@
-Jangle QL
+# Jangle QL
 > The GraphQL layer for Jangle CMS.
 
 
