@@ -1,14 +1,25 @@
 const jangle = require('../core')
 const express = require('express')
 const graphql = require('express-graphql')
+const pluralize = require('pluralize')
 const { buildSchema } = require('graphql')
 
-// Converting lists to a GraphQL String
+// Utilities
 const map = (fn) => (list) => list.map(fn)
+const camelcase = (string) => string[0].toLowerCase() + string.substring(1)
 const debug = (thing) => console.log(thing) || thing
 const join = (separator) => (list) => list.join(separator)
 const prepend = (prefix) => (string) => prefix + string
 
+// Jangle Schemas
+const getListSchemas = (lists) =>
+  Promise.all(
+    Object.keys(lists).map(name =>
+      lists[name].schema().then(schema => ({ name, schema }))
+    )
+  )
+
+// Converting Jangle Schemas to GraphQL Schemas
 const toGraphQLField = ({ name, type, required }) =>
   `${name}: ${type}${required ? '!' : ''}`
 
@@ -17,15 +28,8 @@ const toGraphQLType = ({ name, schema: { fields } }) =>
   ${fields.map(toGraphQLField).join('\n  ')}
 }`
 
-const getListSchemas = (lists) =>
-  Promise.all(
-    Object.keys(lists).map(name =>
-      lists[name].schema().then(schema => ({ name, schema }))
-    )
-  )
-
 const toGraphQLQueryField = ({ name }) =>
-  `${name.toLowerCase()}: ${name}`
+  `${camelcase(pluralize(name))}: ${name}`
 
 const queryRoot = (schemas) => `type Query {
   ${schemas.map(toGraphQLQueryField).join('\n  ')}
@@ -36,10 +40,8 @@ const toGraphQLSchema = (schemas) =>
     .then(map(toGraphQLType))
     .then(join('\n\n'))
     .then(prepend(queryRoot(schemas) + '\n\n'))
-    .then(debug)
 
-// GraphQL Stuff
-
+// Entrypoint
 const init = ({ port } = {}) => ({ lists }) =>
   getListSchemas(lists)
     .then(toGraphQLSchema)
@@ -52,7 +54,7 @@ const init = ({ port } = {}) => ({ lists }) =>
       }))
 
       app.listen(port || 3000, () =>
-        `Ready at http://localhost:${port || 3000}`
+        console.info(`Ready at http://localhost:${port || 3000}/ql`)
       )
       return app
     })
