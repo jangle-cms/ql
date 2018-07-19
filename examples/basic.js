@@ -11,6 +11,10 @@ jangle
         },
         email: {
           type: String
+        },
+        friends: {
+          type: [Schema.Types.ObjectId],
+          ref: 'Person'
         }
       }),
       BlogPost: new Schema({
@@ -20,8 +24,8 @@ jangle
         },
         author: {
           type: Schema.Types.ObjectId,
-          required: true,
-          ref: 'Person'
+          ref: 'Person',
+          required: true
         }
       })
     }
