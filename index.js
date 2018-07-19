@@ -1,7 +1,6 @@
 const jangle = require('../core')
 const express = require('express')
 const graphql = require('express-graphql')
-const pluralize = require('pluralize')
 const { buildSchema } = require('graphql')
 
 // Utilities
@@ -16,9 +15,7 @@ const isArrayType = (type) => endsIn(type, '[]')
 // Jangle Schemas
 const getListSchemas = (lists) =>
   Promise.all(
-    Object.keys(lists).map(name =>
-      lists[name].schema().then(schema => ({ name, schema }))
-    )
+    Object.values(lists).map(list => list.schema())
   )
 
 // Converting Jangle Schemas to GraphQL Schemas
@@ -35,14 +32,14 @@ const toGraphQLType = (type) =>
 const toGraphQLField = (field) =>
   `${field.name}: ${toGraphQLType(field.type)}`
 
-const toGraphQLSchemaType = ({ name, schema: { fields } }) =>
+const toGraphQLSchemaType = ({ name, fields }) =>
   `type ${name} {
   ${fields.map(toGraphQLField).join('\n  ')}
 }`
 
-const toGraphQLQueryField = ({ name }) =>
-  `${camelcase(name)}(id: ID!): ${name}
-  ${camelcase(pluralize(name))}: [${name}]`
+const toGraphQLQueryField = ({ name, labels }) =>
+  `${camelcase(labels.singular)}(id: ID!): ${name}
+  ${camelcase(labels.plural)}: [${name}]`
 
 const queryRoot = (schemas) => `type Query {
   ${schemas.map(toGraphQLQueryField).join('\n  ')}
@@ -55,26 +52,51 @@ const toGraphQLSchema = (schemas) =>
     .then(prepend(queryRoot(schemas) + '\n\n'))
     .then(debug)
 
+const buildResolvers = ({ lists }, schemas) => {
+  console.log(
+    schemas.map(schema => schema.fields)
+  )
+  return {
+    person (id) {
+      return null
+    },
+    people () {
+      return []
+    },
+    blogPost () {
+      return null
+    },
+    blogPosts () {
+      return []
+    }
+  }
+}
+
 // GraphQL App
-const startApp = ({ port }) => (schema) => {
+const startApp = ({ jangle, port }) => ({ schemas, schema }) => {
   const app = express()
 
   app.use('/ql', graphql({
     schema: buildSchema(schema),
+    rootValue: buildResolvers(jangle, schemas),
     graphiql: true
   }))
 
   app.listen(port || 3000, () =>
     console.info(`Ready at http://localhost:${port || 3000}/ql`)
   )
+
   return app
 }
 
 // Main Method
-const init = ({ port } = {}) => ({ lists }) =>
-  getListSchemas(lists)
-    .then(toGraphQLSchema)
-    .then(startApp({ port }))
+const init = ({ port } = {}) => (jangle) =>
+  getListSchemas(jangle.lists)
+    .then(schemas =>
+      toGraphQLSchema(schemas)
+        .then(schema => ({ schema, schemas }))
+    )
+    .then(startApp({ jangle, port }))
     .catch(console.error)
 
 module.exports = {
