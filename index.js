@@ -1,4 +1,4 @@
-const jangle = require('../core')
+const jangle = require('@jangle/core')
 const express = require('express')
 const graphql = require('express-graphql')
 const { buildSchema } = require('graphql')
